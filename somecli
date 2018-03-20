@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby
+
+require 'logger'
+require 'optparse'
+
+LOG_LEVELS = {
+  'fatal' => Logger::FATAL,
+  'error' => Logger::ERROR,
+  'warn'  => Logger::WARN,
+  'info'  => Logger::INFO,
+  'debug' => Logger::DEBUG
+}
+
+defaults = options = {
+  log_level: 'info'
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: somecli [options] [ARG ...]"
+
+  opts.on("-l", "--log-level LEVEL", "Set log level", LOG_LEVELS.keys.join(" "), "Default: #{defaults[:log_level]}") do |level|
+    options[:log_level] = level
+  end
+end.parse!
+
+level    = ENV['DEBUG'] ? 'debug' : options[:log_level]
+loglevel = LOG_LEVELS[level]
+progname = File.basename(__FILE__)
+fmt      = Logger::Formatter.new
+formatter = Proc.new do |severity, datetime, progname, msg|
+  msg = severity == "DEBUG" ? msg.inspect : msg
+  if STDOUT.tty?
+    "#{msg}\n"
+  else
+    fmt.call(severity, datetime, progname, msg)
+  end
+end
+
+log = Logger.new(STDERR, progname: progname, formatter: formatter, level: loglevel)
+
+log.unknown "some unknown stuff"
+log.fatal "some fatal stuff"
+log.error "some error stuff"
+log.warn "some warning stuff"
+log.info "some info stuff"
+log.debug "some debug stuff"
+
+
+puts "hello world"
